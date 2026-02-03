@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react"
 import "./App.css"
 import { Form } from "./components/Form"
-import { type IUser } from "./types"
+import { type ICreateUserRequest, type IUser } from "./types"
 import { User } from "./components/User"
 import { apiClient, ApiError } from "./api/client"
 
@@ -9,10 +9,14 @@ export default function App() {
     const [users, setUsers] = useState<IUser[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<null | string>(null)
+    const [formData, setFormData] = useState<ICreateUserRequest>({
+        name:"",
+        email:""
+    })
 
     const fetchUsers = async () => {
         setIsLoading(true)
-        try {~
+        try {
             const response = await apiClient.getUsers()
 
             if (response.success && response.data) {
@@ -34,6 +38,21 @@ export default function App() {
     useEffect(() => {
         fetchUsers()
     }, [])
+
+    const handleInputChange = (
+        e: ChangeEvent<HTMLInputElement>
+    ) => {
+        const {name,value} = e.target
+        setFormData(old =>
+        ({...old, [name]:value})
+        )
+    }
+
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault()
+        console.log(formData)
+    }
+
     return (
         <div className="app">
             <header className="header">
@@ -47,13 +66,13 @@ export default function App() {
                 </div>}
                 <section className="form-section">
                     <h2>Add New User</h2>
-                    <Form />
+                    <Form handleSubmit={handleSubmit} handleInputChange={handleInputChange} formData={formData}/>
                 </section>
 
                 <section className="users-section">
                     <div className="section-header">
                         <h2>Users</h2>
-                        <button className="btn btn-secondary">Refresh</button>
+                        <button onClick={fetchUsers} className="btn btn-secondary">Refresh</button>
                     </div>
 
                     {isLoading && users.length === 0 ?
@@ -61,7 +80,7 @@ export default function App() {
                             Loading users...
                         </div>) :
                         (<div className="users-list">
-                            {users.map((el) => <User {...el} />)}
+                            {users.map((el,i) => <User key ={i}{...el} />)}
                         </div>)}
                 </section>
             </main>
