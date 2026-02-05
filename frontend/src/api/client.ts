@@ -1,4 +1,4 @@
-import type { IApiResponse, IUser } from "../types"
+import type { IApiResponse, ICreateUserRequest, IUser } from "../types"
 
 export class ApiError extends Error {
     status: number
@@ -19,9 +19,24 @@ class ApiClient {
         this.baseUrl = baseUrl
     }
 
+    private buildUrl(
+        endpoint: string,
+        params?:Record<string, any>){
+        const url = new URL(`${this.baseUrl}${endpoint}`)
+
+        if (params) {
+            Object.entries(params).forEach(([key, value]) =>{
+                if (value !== undefined && key !== undefined)
+                    url.searchParams.append(key, String(value))
+            })
+        }
+        return url.toString()
+    }
+
     private async request<T>(
         endpoint: string,
-        options?: RequestInit
+        options?: RequestInit,
+        
     ): Promise<T> {
         const url = `${this.baseUrl}${endpoint}`
         const config: RequestInit = {...options,
@@ -56,8 +71,12 @@ class ApiClient {
         }
     }
 
-    async get<T>(endpoint: string): Promise<T> {
-        return this.request<T>(endpoint, {
+    async get<T>(
+        endpoint: string,
+         params?:Record<string,any>
+    ): Promise<T> {
+        const url = params ? this.buildUrl(endpoint,params): endpoint
+        return this.request<T>(url.replaceAll(this.baseUrl, ""),{
             method: "GET"
         })
     }
@@ -72,8 +91,24 @@ class ApiClient {
         })
     }
 
+    async delete<T>(endpoint: string): Promise<T> {
+        return this.request<T>(endpoint, {
+            method:"DELETE"
+        })
+    }
+
     async getUsers(): Promise<IApiResponse<IUser[]>> {
         return this.get<IApiResponse<IUser[]>>("/users")
+    }
+
+    async createUser(data: ICreateUserRequest):
+        Promise<IApiResponse<IUser>> {
+            return this.post<ICreateUserRequest, IApiResponse<IUser>>("/users",data)
+    }
+
+    async deleteUser(id: number):
+    Promise<IApiResponse<void>> {
+        this.delete<IApiResponse<void>>(`/users/${id}`)
     }
 }
 
